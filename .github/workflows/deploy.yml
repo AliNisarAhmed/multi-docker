@@ -73,7 +73,7 @@ jobs:
           aws_secret_key: ${{ secrets.AWS_ACCESS_SECRET_KEY }}
           application_name: docker-multi
           environment_name: Dockermulti-env
-          version_label: 1
+          version_label: 2
           region: us-west-2
           deployment_package: deploy.zip
 
