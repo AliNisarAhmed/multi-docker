@@ -18,7 +18,7 @@ jobs:
         id: buildx 
         uses: docker/setup-buildx-action@v1 
       - name: Build Client project in dev mode for testing
-        run: docker build -t alinisarahmed/docker-multi-client-test -f ./client/Dockerfile.dev .
+        run: docker build -t alinisarahmed/docker-multi-client-test -f ./client/Dockerfile.dev ./client
       - name: Run Client tests
         run: docker run -e CI=true alinisarahmed/docker-multi-client-test npm run test
   deploy: 
