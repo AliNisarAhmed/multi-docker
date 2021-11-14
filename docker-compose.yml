@@ -27,7 +27,7 @@ services:
     mem_limit: 128m
     hostname: client
   worker: 
-    image: alinisarhmed/docker-multi-worker
+    image: alinisarahmed/docker-multi-worker
     mem_limit: 128m
     hostname: worker
     environment: 
