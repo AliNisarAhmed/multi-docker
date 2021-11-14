@@ -1,0 +1,79 @@
+name: deploy-multi-docker
+on:
+  push: 
+    branches: [master]
+jobs: 
+  test: 
+    runs-on: ubuntu-latest
+    name: test 
+    steps: 
+      - name: Check out Repo 
+        uses: actions/checkout@v2 
+      - name: Login to Docker Hub 
+        uses: docker/login-action@v1
+        with: 
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up Docker Buildx 
+        id: buildx 
+        uses: docker/setup-buildx-action@v1 
+      - name: Build Client project in dev mode for testing
+        run: docker build -t alinisarahmed/docker-multi-client-test -f ./client/Dockerfile.dev
+      - name: Run Client tests
+        run: docker run -e CI=true alinisarahmed/docker-multi-client-test npm run test
+  deploy: 
+    runs-on: ubuntu-latest
+    name: deploy
+    needs: test
+    steps: 
+      - name: Check out Repo 
+        uses: actions/checkout@v2 
+      - name: Login to Docker Hub 
+        uses: docker/login-action@v1
+        with: 
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up Docker Buildx 
+        id: buildx 
+        uses: docker/setup-buildx-action@v1 
+
+      - name: build nginx
+        run: docker build -t alinisarahmed/docker-multi-nginx ./nginx 
+      - name: build client
+        run: docker build -t alinisarahmed/docker-multi-client ./client 
+      - name: build server
+        run: docker build -t alinisarahmed/docker-multi-server ./server 
+      - name: build worker
+        run: docker build -t alinisarahmed/docker-multi-worker ./worker 
+
+      - name: Tag our Nginx Image
+        run: docker tag alinisarahmed/docker-multi-nginx alinisarahmed/docker-multi-nginx:latest
+      - name: Tag our Client Image
+        run: docker tag alinisarahmed/docker-multi-client alinisarahmed/docker-multi-client:latest
+      - name: Tag our Server Image
+        run: docker tag alinisarahmed/docker-multi-server alinisarahmed/docker-multi-server:latest
+      - name: Tag our Worker Image
+        run: docker tag alinisarahmed/docker-multi-worker alinisarahmed/docker-multi-worker:latest
+
+      - name: Push Nginx Image to Docker Hub 
+        run: docker push alinisarahmed/docker-multi-nginx
+      - name: Push Client Image to Docker Hub 
+        run: docker push alinisarahmed/docker-multi-client
+      - name: Push Server Image to Docker Hub 
+        run: docker push alinisarahmed/docker-multi-server
+      - name: Push Worker Image to Docker Hub 
+        run: docker push alinisarahmed/docker-multi-worker
+
+      - name: Generate a deployment package 
+        run: zip -r deploy.zip . -x '*.git'
+      - name: Deploy to EB 
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_ACCESS_SECRET_KEY }}
+          application_name: docker-multi
+          environment_name: Dockermulti-env
+          version_label: 1
+          region: us-west-2
+          deployment_package: deploy.zip
+
